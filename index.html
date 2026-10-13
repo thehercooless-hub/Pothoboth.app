@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Studio Photobooth Minimalis Jarak Jauh</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Font & Icon -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- PeerJS untuk Video Call Jarak Jauh -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+    <!-- Header / Navbar -->
+    <header class="navbar">
+        <div class="logo">
+            <i data-lucide="camera"></i>
+            <span>MINIMALIST<b>BOOTH</b></span>
+        </div>
+        <div class="peer-status">
+            <span class="badge" id="peer-status-badge">Memuat ID...</span>
+            <div class="my-id-box">
+                <span id="my-peer-id">---</span>
+                <button id="btn-copy-id" title="Salin ID Saya"><i data-lucide="copy"></i></button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container Layout -->
+    <main class="app-container">
+        
+        <!-- Sidebar Kiri: Kontrol & Pengaturan -->
+        <aside class="sidebar">
+            
+            <!-- Panel Fitur Jarak Jauh (Remote Room) -->
+            <section class="card">
+                <h3><i data-lucide="radio"></i> Mode Jarak Jauh (Peer)</h3>
+                <p class="subtitle">Hubungkan 2 perangkat untuk foto bersama secara live.</p>
+                <div class="input-group">
+                    <input type="text" id="remote-id-input" placeholder="Masukkan ID Teman...">
+                    <button id="btn-connect" class="btn btn-secondary">Sambungkan</button>
+                </div>
+                <div id="connection-info" class="info-text"></div>
+            </section>
+
+            <!-- Panel Mode Pose & Timer -->
+            <section class="card">
+                <h3><i data-lucide="clock"></i> Pengaturan Foto</h3>
+                <div class="control-grid">
+                    <div class="control-item">
+                        <label>Jumlah Pose</label>
+                        <select id="pose-count">
+                            <option value="1">1 Foto Single</option>
+                            <option value="3">3 Foto Strip</option>
+                            <option value="4" selected>4 Foto Grid / Strip</option>
+                        </select>
+                    </div>
+                    <div class="control-item">
+                        <label>Timer (Detik)</label>
+                        <select id="timer-delay">
+                            <option value="3">3 Detik</option>
+                            <option value="5" selected>5 Detik</option>
+                            <option value="10">10 Detik</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Panel Filter Kamera -->
+            <section class="card">
+                <h3><i data-lucide="sliders"></i> Filter Visual</h3>
+                <div class="filter-options">
+                    <button class="filter-btn active" data-filter="none">Normal</button>
+                    <button class="filter-btn" data-filter="grayscale(100%)">B&W Film</button>
+                    <button class="filter-btn" data-filter="sepia(60%) contrast(110%)">Vintage</button>
+                    <button class="filter-btn" data-filter="contrast(125%) brightness(105%)">High Contrast</button>
+
+                </div>
+            </section>
+
+            <!-- Panel Pilihan Bingkai -->
+            <section class="card">
+                <h3><i data-lucide="layout-grid"></i> Desain Bingkai</h3>
+                <div class="frame-options">
+                    <button class="frame-btn active" data-frame="classic-white">Classic White</button>
+                    <button class="frame-btn" data-frame="charcoal-dark">Charcoal Dark</button>
+                    <button class="frame-btn" data-frame="cream-vintage">Vintage Cream</button>
+                    <button class="frame-btn" data-frame="retro-polaroid">Polaroid Style</button>
+                </div>
+            </section>
+
+            <!-- Panel Hiasan & Pemanis Custom -->
+            <section class="card">
+                <h3><i data-lucide="sparkles"></i> Pemanis & Custom</h3>
+                <div class="sticker-selector">
+                    <button class="add-sticker-btn" data-sticker="❤️">❤️</button>
+                    <button class="add-sticker-btn" data-sticker="✨">✨</button>
+                    <button class="add-sticker-btn" data-sticker="🎀">🎀</button>
+                    <button class="add-sticker-btn" data-sticker="⭐">⭐</button>
+                    <button class="add-sticker-btn" data-sticker="🎞️">🎞️</button>
+                    <button class="add-sticker-btn" data-sticker="📸">📸</button>
+                </div>
+                <div class="custom-text-input">
+                    <input type="text" id="sticker-text-input" placeholder="Tulis teks/pemanis custom...">
+                    <button id="btn-add-text-sticker" class="btn btn-secondary">Tambah</button>
+                </div>
+            </section>
+
+        </aside>
+
+        <!-- Area Utama: Viewfinder Kamera & Live Overlay -->
+        <section class="workspace">
+            <div class="viewfinder-container">
+                
+                <!-- Countdown Overlay -->
+                <div id="countdown-overlay" class="countdown-overlay hidden">5</div>
+
+                <!-- Video Display (Lokal & Remote) -->
+                <div class="video-grid" id="video-grid">
+                    <div class="video-wrapper local-wrapper">
+                        <video id="local-video" autoplay playsinline muted></video>
+                        <span class="video-label">Lokal (Anda)</span>
+                    </div>
+                    <div class="video-wrapper remote-wrapper hidden" id="remote-video-wrapper">
+                        <video id="remote-video" autoplay playsinline></video>
+                        <span class="video-label">Remote (Jarak Jauh)</span>
+                    </div>
+                </div>
+
+                <!-- Overlay Elemen Stiker / Pemanis yang Bisa Ditarik (Draggable) -->
+                <div id="drag-overlay" class="drag-overlay"></div>
+
+                <!-- Tombol Aksi Jepret -->
+                <div class="shutter-bar">
+                    <button id="btn-capture" class="btn-shutter">
+                        <i data-lucide="aperture"></i> AMBIL FOTO
+                    </button>
+                </div>
+            </div>
+
+            <!-- Preview Hasil Foto Canvas -->
+            <div class="result-container hidden" id="result-container">
+                <div class="result-header">
+                    <h3>Hasil Photo Strip</h3>
+                    <div class="result-actions">
+                        <button id="btn-download" class="btn btn-primary"><i data-lucide="download"></i> Unduh Foto</button>
+                        <button id="btn-retake" class="btn btn-secondary"><i data-lucide="refresh-cw"></i> Foto Ulang</button>
+                    </div>
+                </div>
+                <div class="canvas-preview-wrapper">
+                    <canvas id="photo-canvas"></canvas>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Canvas Tersembunyi untuk Pemrosesan Gambar -->
+    <canvas id="hidden-canvas" style="display: none;"></canvas>
+
+    <script src="script.js"></script>
+</body>
+</html>
